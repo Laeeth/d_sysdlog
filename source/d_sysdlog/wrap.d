@@ -9,6 +9,10 @@ import std.algorithm;
 import std.array;
 import core.stdc.stdlib;
 import std.datetime;
+
+
+enum useContainer=0;
+
 string ZtoString(const char* c)
 {
     if (c !is null)
@@ -60,16 +64,18 @@ struct SystemDLog
 		journal=null;
 	}
 
-	void openContainer(string machine, int flags)
+	version(useContainer) // in Fedora 21, not in earlier versions
 	{
-		int err;
-		if(journal !is null)
-			sd_journal_close(journal);
-		enforce((err=sd_journal_open_container(&journal,toZString(machine),flags))==0), // open all journal file types
-			new Exception("Problem opening journal: error "~to!string(err));
-		return;
+		void openContainer(string machine, int flags)
+		{
+			int err;
+			if(journal !is null)
+				sd_journal_close(journal);
+			enforce((err=sd_journal_open_container(&journal,toZString(machine),flags))==0), // open all journal file types
+				new Exception("Problem opening journal: error "~to!string(err));
+			return;
+		}
 	}
-
 	void filter(string match)
 	{
 		int err;
