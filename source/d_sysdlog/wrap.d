@@ -39,13 +39,13 @@ struct SystemDLog
 	this(int flags)
 	{
 		enforce((ret=sd_journal_open(&journal,flags))==0), // open all journal file types
-			new Exception("Problem opening journal: error "~to!string(ret));
+			new Exception("Problem opening journal with only flags: error "~to!string(ret));
 	}
 
 	this(string directory)
 	{
 		enforce((ret=sd_journal_open_directory(&journal,toZString(directory),0))==0), // open all journal file types
-			new Exception("Problem opening journal: error "~to!string(ret));
+			new Exception("Problem opening journal for directory path "~directory~": error "~to!string(ret));
 	}
 
 	this(string[] files)
@@ -55,7 +55,7 @@ struct SystemDLog
 			filelist~=toZString(file);
 		filelist~=null;
 		enforce((ret=sd_journal_open_files(&journal,cast(char**)&filelist,0))==0), // open all journal file types
-			new Exception("Problem opening journal: error "~to!string(ret));
+			new Exception("Problem opening journal for file list: error "~to!string(ret));
 	}
 
 	~this()
@@ -72,36 +72,59 @@ struct SystemDLog
 			if(journal !is null)
 				sd_journal_close(journal);
 			enforce((err=sd_journal_open_container(&journal,toZString(machine),flags))==0), // open all journal file types
-				new Exception("Problem opening journal: error "~to!string(err));
+				new Exception("systemd journal:  opening journal for container: "~ machine ~ "error- "~to!string(err));
 			return;
 		}
 	}
-	void filter(string match)
+	void addMatch(string match)
 	{
 		int err;
 		enforce((err=sd_journal_add_match(journal,toZString(match),match.length)==0),
-		 	new Exception("Problem opening journal: error "~to!string(ret)));
+		 	new Exception("systemd journal: addMatch - "~ match~"; error no " ~to!string(ret)));
 	}
+
+	void addDisJunction()
+	{
+		int err;
+		enforce((err=sd_journal_add_disjunction(journal)==0),
+		 	new Exception("systemd journal: addDisjunction: error "~to!string(ret)));
+	}
+	
+	void addConjunction()
+	{
+		int err;
+		enforce((err=sd_journal_add_conjunction(journal)==0),
+		 	new Exception("systemd journal: addConjunction: error "~to!string(ret)));
+	}
+
+	void  flushMatches()
+	{
+		sd_journal_flush_matches(journal);
+		return;
+	}
+			
+
+
 
 	void seekHead()
 	{
 		int err;
 		enforce((err=sd_journal_seek_head(this.journal)==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal: seekHead error "~to!string(err)));
 	}
 
 	void seekTail()
 	{
 		int err;
 		enforce((err=sd_journal_seek_tail(this.journal)==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal: seekTail error "~to!string(err)));
 	}
 
 	int seekNext()
 	{
 		int count;
 		enforce(((count=sd_journal_next(this.journal))>=0),
-	 		new Exception("Problem opening journal: error "~to!string(count)));
+	 		new Exception("systemd journal seekNext error "~to!string(count)));
 		return count;
 	}
 
@@ -109,7 +132,7 @@ struct SystemDLog
 	{
 		int count;
 		enforce(((count=sd_journal_next_skip(this.journal,skip))>=0),
-	 		new Exception("Problem opening journal: error "~to!string(count)));
+	 		new Exception("systemd journal seekNextSkip error  "~to!string(count)));
 		return count;
 	}
 
@@ -117,7 +140,7 @@ struct SystemDLog
 	{
 		int count;
 		enforce(((count=sd_journal_previous(this.journal))>=0),
-	 		new Exception("Problem opening journal: error "~to!string(count)));
+	 		new Exception("systemd journal seekPrevious error  "~to!string(count)));
 		return count;
 	}
 
@@ -125,14 +148,14 @@ struct SystemDLog
 	{
 		int err;
 		enforce(((err=sd_journal_seek_monotonic_usec(this.journal,bootId,usec))==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal seekMonotonic error  "~to!string(err)));
 		return;
 	}
 	void seekRealtime(ulong usec)
 	{
 		int err;
 		enforce(((err=sd_journal_seek_realtime_usec(this.journal,usec))==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal: seekRealtime error  "~to!string(err)));
 		return;
 	}
 	
@@ -141,7 +164,7 @@ struct SystemDLog
 		int err;
 		char *cursor;
 		enforce(((err=sd_journal_get_cursor(this.journal,&cursor))==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal getCursor error "~to!string(err)));
 		auto ret=ZtoString(cursor);
 		free(cursor);
 		return ret;
@@ -150,7 +173,7 @@ struct SystemDLog
 	{
 		int err;
 		enforce(((err=sd_journal_seek_cursor(this.journal,toZString(cursor)))==0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal: seekCursor error  "~to!string(err)));
 		return;
 	}
 
@@ -158,7 +181,7 @@ struct SystemDLog
 	{
 		int err;
 		enforce(((err=sd_journal_test_cursor(this.journal,toZString(cursor)))>=0),
-	 		new Exception("Problem opening journal: error "~to!string(err)));
+	 		new Exception("systemd journal: testCursor error "~to!string(err)));
 		return(err>0);
 	}
 
@@ -166,7 +189,7 @@ struct SystemDLog
 	{
 		int count;
 		enforce(((count=sd_journal_previous_skip(this.journal,skip))>=0),
-	 		new Exception("Problem opening journal: error "~to!string(count)));
+	 		new Exception("systemd journal: seekPreviousSkip error  "~to!string(count)));
 		return count;
 	}
 
@@ -179,7 +202,7 @@ struct SystemDLog
 		size_t size=buf.sizeof;
 		cp=cast(void*)buf.ptr;
 		enforce((err=sd_journal_get_data(journal,toZString(field),cast(void**)&cp,&size))==0),
-	 		new Exception("Problem opening journal: error "~to!string(err));
+	 		new Exception("systemd journal: getFieldData error  "~to!string(err));
 	 	return ZtoString(cast(const char*)((cast(char*)(cp))[0..size]~'\0'));
 	 }
 
@@ -202,4 +225,22 @@ struct SystemDLog
 	         	}
 	         	return ret;
 	 }
+
+	 void setDataThreshold(size_t size)
+	 {
+	 	int err;
+	 	enforce((err=sd_journal_set_data_threshold(journal,size))==0),
+	 		new Exception("systemd journal: setDataThreshold error "~to!string(err));
+	 	return;
+	}
+
+	 size_t getDataThreshold()
+	 {
+	 	int err;
+	 	size_t size;
+	 	enforce((err=sd_journal_get_data_threshold(journal,&size))==0),
+	 		new Exception("systemd journal: setDataThreshold error "~to!string(err));
+	 	return size;
+	}
+
 }

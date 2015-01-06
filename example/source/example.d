@@ -9,21 +9,6 @@ import std.datetime;
 import d_sysdlog.wrap;
 import d_sysdlog.bind;
 
-string ZtoString(const char* c)
-{
-    if (c !is null)
-      return to!string(fromStringz(c));
-    else
-      return null;
-}
-
-char* toZString(string s)
-{
-	char[] ret=cast(char[])s;
-	if (ret[$-1]!='\0')
-		ret~="\0";
-	return ret.ptr;
-}
 string sanitize(string s)
 {
 	string ret;
@@ -41,7 +26,7 @@ enum msgLoginFailure="failed password for ";
 int main(string[] args)
 {
 	auto systemDLog = SystemDLog(0);
-	//systemDLog.filter("_COMM=sshd");
+	//systemDLog.addMatch("_COMM=sshd");
 	systemDLog.seekHead();
 	writefln("number advanced: %s",systemDLog.seekNext());
 	int numskip=0;
