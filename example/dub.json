@@ -1,0 +1,14 @@
+{
+	"name": "example",
+	"description": "Example Program for the Bindings and high-level wrapper for the systemd journal sd-journal.h",
+	"copyright": "Laeeth Isharc",
+	"authors": ["Laeeth Isharc"],
+	"sourceFiles": ["../source/d_sysdlog/bind.d", "../source/d_sysdlog/wrap.d"],
+	"importPaths": ["../source"],
+	"dependencies": {
+	 },
+	"versions": ["VibeCustomMain"],
+	"libs-posix": ["systemd"],
+	"targetType": "executable",
+	"license": "LGPL 2.1",
+}

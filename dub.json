@@ -1,0 +1,12 @@
+{
+	"name": "d_sysdlog",
+	"description": "Bindings and high-level wrapper for the systemd journal sd-journal.h",
+	"copyright": "Lennart Poettering, Laeeth Isharc",
+	"authors": ["Laeeth Isharc"],
+	"sourcePaths": ["source/d_sysdlog"],
+	"dependencies": {
+	},
+	"libs-posix": ["ssl", "crypto"],
+	"versions": ["VibeCustomMain"],
+	"license": "LGPL 2.1"
+}
